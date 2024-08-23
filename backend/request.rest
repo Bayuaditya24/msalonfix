@@ -1,0 +1,38 @@
+GET http://localhost:5000/pelanggan
+
+###
+GET http://localhost:5000/pelanggan/17
+
+###
+POST http://localhost:5000/pelanggan
+Content-Type: application/json
+
+
+###
+GET http://localhost:5000/perawatan
+
+###
+GET http://localhost:5000/perawatan/3
+
+###
+GET http://localhost:5000/penjualan
+
+###
+GET http://localhost:5000/penjualan/8
+
+###
+POST http://localhost:5000/penjualan
+Content-Type: application/json
+
+
+###
+GET http://localhost:5000/detail
+
+###
+GET http://localhost:5000/detail/148
+
+###
+POST http://localhost:5000/detail
+Content-Type: application/json
+
+

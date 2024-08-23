@@ -1,0 +1,17 @@
+.currency-input {
+  position: relative;
+}
+
+.currency-input input {
+  padding-left: 1.7rem; /* Adjust padding to fit currency symbol */
+}
+
+.currency-input::before {
+  content: "Rp.";
+  position: absolute;
+  left: 0.5rem; /* Position the currency symbol */
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: #495057;
+}
