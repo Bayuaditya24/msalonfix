@@ -160,7 +160,7 @@ function Transaksi({
                     <tr key={detail.id}>
                       <td>{index + 1}</td>
                       <td>{detail.perawatanPelanggan}</td>
-                      {detail.idcategory === 2 || detail.idcategory === 4 ? (
+                      {detail.idcategory === 2 || detail.idcategory === 4 || detail.idcategory === 1 || detail.idcategory === 3 ? (
                         <td className="currency-input col-2">
                           <input
                             className="form-control"
