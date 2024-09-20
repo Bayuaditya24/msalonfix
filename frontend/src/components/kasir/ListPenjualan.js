@@ -457,10 +457,12 @@ function ListPenjualan() {
                             <td
                               rowSpan={penjualandetail.details.length}
                               className="text-center"
-                                onClick={() => printDetail(penjualandetail)}
+                                
                             >
                               <Button
+onClick={() => printDetail(penjualandetail)}
                                 variant="success"
+                                  type="button"
         
                               >
                                 <SlPrinter className="fs-4" />
