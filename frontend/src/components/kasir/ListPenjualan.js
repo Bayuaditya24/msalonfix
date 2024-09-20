@@ -12,14 +12,16 @@ import {
   Spinner,
   Button,
   InputGroup,
+  Modal,
 } from "react-bootstrap";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import numberWithCommas from "../../utils/utils";
 import { IoSearchOutline } from "react-icons/io5";
 import { RiFileExcel2Fill } from "react-icons/ri";
-import * as XLSX from "xlsx"; // Import xlsx library
+import * as XLSX from "xlsx";
 import InputGroupText from "react-bootstrap/esm/InputGroupText";
+import { SlPrinter } from "react-icons/sl";
 
 function ListPenjualan() {
   const [penjualan, setPenjualan] = useState([]);
@@ -27,13 +29,15 @@ function ListPenjualan() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showAll, setShowAll] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // State for search input
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [loading, setLoading] = useState(true); // State for loading
+  const [loading, setLoading] = useState(true);
   const [totalCash, setTotalCash] = useState(0);
   const [totalDebit, setTotalDebit] = useState(0);
   const [metodes, setMetodes] = useState([]);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [printContent, setPrintContent] = useState("");
 
   useEffect(() => {
     getPenjualan();
@@ -51,18 +55,18 @@ function ListPenjualan() {
   }, [penjualan, startDate, endDate, showAll, searchTerm]);
 
   useEffect(() => {
-    setCurrentPage(1); // Reset page to 1 on date or filter change
+    setCurrentPage(1);
   }, [startDate, endDate, showAll, searchTerm]);
 
   const getPenjualan = async () => {
-    setLoading(true); // Set loading to true when starting to fetch data
+    setLoading(true);
     try {
       const response = await axios.get("http://localhost:5000/penjualan");
       setPenjualan(response.data);
     } catch (error) {
       console.error("Error fetching penjualan data:", error);
     } finally {
-      setLoading(false); // Set loading to false once data is fetched
+      setLoading(false);
     }
   };
 
@@ -108,7 +112,6 @@ function ListPenjualan() {
       (a, b) => new Date(a.tanggalTransaction) - new Date(b.tanggalTransaction)
     );
 
-    // Calculate total for each payment method based on ID
     let cashTotal = 0;
     let debitTotal = 0;
 
@@ -116,10 +119,8 @@ function ListPenjualan() {
       penjualandetail.details.forEach((detail) => {
         const metodeId = findMetodeById(detail.metodeDet);
         if (metodeId === "Cash") {
-          // ID for Cash
           cashTotal += parseFloat(detail.totalHarga);
         } else if (metodeId === "Debit / QRIS") {
-          // ID for Debit
           debitTotal += parseFloat(detail.totalHarga);
         }
       });
@@ -163,7 +164,7 @@ function ListPenjualan() {
         Note: penjualandetail.details
           .map((detail) => detail.karyawanNote)
           .filter((note) => note)
-          .join(", "), // Gabungkan semua catatan
+          .join(", "),
       };
     });
 
@@ -202,6 +203,101 @@ function ListPenjualan() {
     indexOfLastItem
   );
 
+  const printDetail = (penjualandetail) => {
+    const content = generatePrintContent(penjualandetail);
+    handlePrint(content);
+  };
+
+  const formatTime = (date) => {
+    // Format waktu menjadi HH:MM:SS
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  const generatePrintContent = (penjualandetail) => {
+    const now = new Date(); // Ambil waktu sekarang
+    return `
+      <html>
+      <head>
+        <title>Cetak Detail Penjualan</title>
+        <style>
+          @page { margin: 0; }
+          body { font-family: Arial, sans-serif; font-size: 10px;  margin-left: 20px; }
+          .container { width: 100%; margin: 0; }
+          .header { text-align: center; margin-bottom: 15px;}
+          .header img { max-width: 70px; height: auto; }
+          .header p { margin: 2px 0; }
+          .table { width: 80%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }
+          .table th, .table td { text-align: left; padding: 4px; font-size: 10px; border-bottom: 1px dashed black; }
+          .table th { font-weight: bold; }
+          .table tr:first-child td { border-top: 1px dashed black; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <img src="/images/logosm.png" alt="Logo MSalon">
+            <p>Jl. Dharma Giri Bitera Gianyar</p>
+          </div>
+          <p>${formatDate(penjualandetail.tanggalTransaction)} ${formatTime(
+      now
+    )}</p> <!-- Tambahkan waktu di sini -->
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Perawatan</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${penjualandetail.details
+                .map(
+                  (detail) => `
+                  <tr>
+                    <td>${detail.perawatanPelanggan} (${detail.quantityP}x)</td>
+                    <td>${numberWithCommas(detail.totalHarga)}</td>
+                  </tr>
+                `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <p><strong>Subtotal:</strong> ${numberWithCommas(
+            penjualandetail.details.reduce(
+              (sum, detail) => sum + parseFloat(detail.totalHarga),
+              0
+            )
+          )}</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handlePrint = (content) => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+
+    // Atur style iframe
+    iframe.style.position = "absolute";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+
+    // Tulis konten ke iframe
+    iframe.contentWindow.document.write(content);
+    iframe.contentWindow.document.close();
+
+    // Tunggu sejenak dan kemudian cetak
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe); // Hapus iframe setelah mencetak
+    }, 100);
+  };
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
@@ -226,7 +322,6 @@ function ListPenjualan() {
                   <InputGroupText id="dari" className="col-sm-3">
                     Dari
                   </InputGroupText>
-
                   <input
                     className="form-control col-sm"
                     type="date"
@@ -241,7 +336,6 @@ function ListPenjualan() {
                   <InputGroupText id="sampai" className="col-sm-3">
                     Sampai
                   </InputGroupText>
-
                   <input
                     className="form-control col-sm"
                     type="date"
@@ -313,6 +407,7 @@ function ListPenjualan() {
                       <th scope="col">Pembayaran</th>
                       <th scope="col">Note</th>
                       <th scope="col">Tanggal Transaksi</th>
+                      <th scope="col">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -348,8 +443,7 @@ function ListPenjualan() {
                                 Rp. {numberWithCommas(detail.grandtotal)}
                               </td>
                               <td rowSpan={penjualandetail.details.length}>
-                                {findMetodeById(detail.metodeDet)}{" "}
-                                {/* Menampilkan nama metode */}
+                                {findMetodeById(detail.metodeDet)}
                               </td>
                             </>
                           )}
@@ -357,6 +451,19 @@ function ListPenjualan() {
                           {detailIndex === 0 && (
                             <td rowSpan={penjualandetail.details.length}>
                               {formatDate(penjualandetail.tanggalTransaction)}
+                            </td>
+                          )}
+                          {detailIndex === 0 && (
+                            <td
+                              rowSpan={penjualandetail.details.length}
+                              className="text-center"
+                            >
+                              <Button
+                                variant="success"
+                                onClick={() => printDetail(penjualandetail)}
+                              >
+                                <SlPrinter className="fs-4" />
+                              </Button>
                             </td>
                           )}
                         </tr>
@@ -374,7 +481,6 @@ function ListPenjualan() {
                     </tr>
                   </tbody>
                 </Table>
-
                 <Pagination>
                   <Pagination.Prev
                     disabled={currentPage === 1}
