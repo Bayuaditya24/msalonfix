@@ -276,6 +276,7 @@ function ListCategory() {
                               type="text"
                               placeholder="Masukkan Nama Perawatan"
                               value={newPerawatan.namaPerawatan}
+required
                               onChange={(e) =>
                                 setNewPerawatan({
                                   ...newPerawatan,
@@ -315,6 +316,7 @@ function ListCategory() {
                               type="number"
                               placeholder="Masukkan Harga"
                               value={newPerawatan.harga}
+required
                               onChange={(e) =>
                                 setNewPerawatan({
                                   ...newPerawatan,
