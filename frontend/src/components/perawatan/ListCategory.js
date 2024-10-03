@@ -12,23 +12,56 @@ import {
   Nav,
   Pagination,
   Spinner,
+  Modal,
+  Button,
 } from "react-bootstrap";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { IoSearchOutline } from "react-icons/io5";
 import Tab from "react-bootstrap/Tab";
 import numberWithCommas from "../../utils/utils";
+import Select from "react-select";
+import { FaPlus } from "react-icons/fa6";
 
 function ListCategory() {
   const [categories, setCategories] = useState([]);
   const [perawatan, setPerawatan] = useState([]);
   const [filteredPerawatan, setFilteredPerawatan] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(1); // Default to ID 1
+  const [selectedCategory, setSelectedCategory] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [showAllPerawatan, setShowAllPerawatan] = useState(false); // Track checkbox state
+  const [showAllPerawatan, setShowAllPerawatan] = useState(false);
   const itemsPerPage = 10;
+  const [showModal, setShowModal] = useState(false);
+  const [newPerawatan, setNewPerawatan] = useState({
+    namaPerawatan: "",
+    kategori: "",
+    harga: "",
+  });
+
+  const handleSubmit = async () => {
+    try {
+      await axios.post("http://localhost:5000/perawatan", {
+        namaPerawatan: newPerawatan.namaPerawatan,
+        harga: parseFloat(newPerawatan.harga), // Ensure harga is a number
+        kategori: newPerawatan.kategori, // This should be the category ID
+      });
+
+      // Optionally, you can refetch perawatan here to update the displayed list
+      handleCategoryChange(selectedCategory); // Re-fetch data for the current category
+      setShowModal(false); // Close the modal
+      setNewPerawatan({ namaPerawatan: "", kategori: "", harga: "" }); // Reset form
+    } catch (error) {
+      console.error("Error adding new perawatan:", error);
+      alert("Failed to add new perawatan. Please try again.");
+    }
+  };
+
+  const categoryOptions = categories.map((kategori) => ({
+    value: kategori.id,
+    label: kategori.categoryPerawatan,
+  }));
 
   useEffect(() => {
     getCategories();
@@ -165,6 +198,13 @@ function ListCategory() {
                 </Col>
               </Row>
             </Tab.Container>
+            <Row className="mt-3 mb-3">
+              <Col>
+                <Button variant="success" onClick={() => setShowModal(true)}>
+                  <FaPlus className="mb-1" /> Tambah Perawatan
+                </Button>
+              </Col>
+            </Row>
 
             <Row className="mb-3">
               <Col className="col-sm-3">
@@ -217,6 +257,88 @@ function ListCategory() {
                     ))}
                   </tbody>
                 </Table>
+                <Modal show={showModal} onHide={() => setShowModal(false)}>
+                  <Modal.Header closeButton>
+                    <Modal.Title>Input Perawatan Baru</Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    <Form>
+                      <Form.Group
+                        controlId="formNamaPerawatan"
+                        className="mb-3"
+                      >
+                        <Row>
+                          <Col sm={4}>
+                            <Form.Label>Nama Perawatan</Form.Label>
+                          </Col>
+                          <Col sm={8}>
+                            <Form.Control
+                              type="text"
+                              placeholder="Masukkan Nama Perawatan"
+                              value={newPerawatan.namaPerawatan}
+                              onChange={(e) =>
+                                setNewPerawatan({
+                                  ...newPerawatan,
+                                  namaPerawatan: e.target.value,
+                                })
+                              }
+                            />
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                      <Form.Group controlId="formKategori" className="mb-3">
+                        <Row>
+                          <Col sm={4}>
+                            <Form.Label>Kategori</Form.Label>
+                          </Col>
+                          <Col sm={8}>
+                            <Select
+                              options={categoryOptions}
+                              onChange={(selectedOption) =>
+                                setNewPerawatan({
+                                  ...newPerawatan,
+                                  kategori: selectedOption.value, // Set the value from the selected option
+                                })
+                              }
+                              placeholder="Pilih Kategori"
+                            />
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                      <Form.Group controlId="formHarga" className="mb-3">
+                        <Row>
+                          <Col sm={4}>
+                            <Form.Label>Harga</Form.Label>
+                          </Col>
+                          <Col sm={8}>
+                            <Form.Control
+                              type="number"
+                              placeholder="Masukkan Harga"
+                              value={newPerawatan.harga}
+                              onChange={(e) =>
+                                setNewPerawatan({
+                                  ...newPerawatan,
+                                  harga: e.target.value,
+                                })
+                              }
+                            />
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                    </Form>
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowModal(false)}
+                    >
+                      Tutup
+                    </Button>
+                    <Button variant="primary" onClick={handleSubmit}>
+                      Simpan
+                    </Button>
+                  </Modal.Footer>
+                </Modal>
 
                 <Pagination>
                   {[...Array(totalPages).keys()].map((number) => (
