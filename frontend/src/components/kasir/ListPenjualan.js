@@ -12,7 +12,6 @@ import {
   Spinner,
   Button,
   InputGroup,
-  Modal,
 } from "react-bootstrap";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -22,6 +21,7 @@ import { RiFileExcel2Fill } from "react-icons/ri";
 import * as XLSX from "xlsx";
 import InputGroupText from "react-bootstrap/esm/InputGroupText";
 import { SlPrinter } from "react-icons/sl";
+import PenjualanTerbanyak from "./PenjualanTerbanyak"; // Import komponen baru
 
 function ListPenjualan() {
   const [penjualan, setPenjualan] = useState([]);
@@ -36,8 +36,30 @@ function ListPenjualan() {
   const [totalCash, setTotalCash] = useState(0);
   const [totalDebit, setTotalDebit] = useState(0);
   const [metodes, setMetodes] = useState([]);
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const [printContent, setPrintContent] = useState("");
+  const pagesToShow = 5;
+  const pageNumbersToShow = [];
+  const [isPenjualanTerbanyak, setIsPenjualanTerbanyak] = useState(false);
+  const [penjualanTerbanyak, setPenjualanTerbanyak] = useState([]);
+
+  useEffect(() => {
+    if (isPenjualanTerbanyak) {
+      getPenjualanTerbanyak();
+    }
+  }, [isPenjualanTerbanyak]);
+
+  const getPenjualanTerbanyak = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/penjualan");
+      setPenjualanTerbanyak(response.data);
+    } catch (error) {
+      console.error("Error fetching penjualan terbanyak data:", error);
+    }
+  };
+
+  // Fungsi untuk switch antara penjualan utama dan penjualan terbanyak
+  const togglePenjualan = () => {
+    setIsPenjualanTerbanyak(!isPenjualanTerbanyak);
+  };
 
   useEffect(() => {
     getPenjualan();
@@ -311,6 +333,24 @@ function ListPenjualan() {
     pageNumbers.push(i);
   }
 
+  // Jika jumlah halaman lebih dari 5, kita tampilkan yang relevan (sebelumnya, sekarang, dan berikutnya)
+  if (pageNumbers.length > pagesToShow) {
+    if (currentPage <= 3) {
+      pageNumbersToShow.push(...pageNumbers.slice(0, pagesToShow)); // Menampilkan halaman pertama sampai 5
+    } else if (currentPage >= pageNumbers.length - 2) {
+      pageNumbersToShow.push(
+        ...pageNumbers.slice(pageNumbers.length - pagesToShow)
+      ); // Menampilkan 5 halaman terakhir
+    } else {
+      pageNumbersToShow.push(
+        ...pageNumbers.slice(currentPage - 3, currentPage + 2)
+      ); // Menampilkan halaman sekitar currentPage
+    }
+  } else {
+    // Jika total halaman kurang dari atau sama dengan 5, tampilkan semuanya
+    pageNumbersToShow.push(...pageNumbers);
+  }
+
   return (
     <>
       <Container fluid>
@@ -354,9 +394,22 @@ function ListPenjualan() {
                   onChange={(e) => setShowAll(e.target.checked)}
                 />
               </Col>
+              <Col>
+                <Form.Check
+                  className="mt-2 d-flex gap-2"
+                  type="checkbox"
+                  label="Terbanyak"
+                  checked={isPenjualanTerbanyak}
+                  onChange={(e) => setIsPenjualanTerbanyak(e.target.checked)} // Menggunakan onChange untuk toggle
+                />
+              </Col>
               <Col className="text-end col-sm">
-                <Button variant="success" onClick={exportToExcel}>
-                  <RiFileExcel2Fill className="mb-1" /> Export to Excel
+                <Button
+                  variant="success"
+                  onClick={exportToExcel}
+                  disabled={isPenjualanTerbanyak}
+                >
+                  <RiFileExcel2Fill className="mb-1" /> Export
                 </Button>
               </Col>
             </Row>
@@ -389,120 +442,134 @@ function ListPenjualan() {
               </Container>
             ) : (
               <>
-                <Table
-                  bordered
-                  responsive="sm"
-                  size="sm"
-                  className="text-center"
-                >
-                  <thead>
-                    <tr>
-                      <th scope="col">No</th>
-                      <th scope="col">Nama</th>
-                      <th scope="col">Perawatan</th>
-                      <th scope="col">Harga</th>
-                      <th scope="col">Quantity</th>
-                      <th scope="col">Total Harga</th>
-                      <th scope="col">Grand Total</th>
-                      <th scope="col">Pembayaran</th>
-                      <th scope="col">Note</th>
-                      <th scope="col">Tanggal Transaksi</th>
-                      <th scope="col">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentItems.map((penjualandetail, index) =>
-                      penjualandetail.details.map((detail, detailIndex) => (
-                        <tr key={`${index}-${detailIndex}`}>
-                          {detailIndex === 0 && (
-                            <>
-                              <td rowSpan={penjualandetail.details.length}>
-                                {index + 1}
-                              </td>
-                              <td
-                                className="text-start"
-                                rowSpan={penjualandetail.details.length}
-                              >
-                                {penjualandetail.namaPelanggan}
-                              </td>
-                            </>
-                          )}
-                          <td className="text-start">
-                            {detail.perawatanPelanggan}
-                          </td>
-                          <td className="text-start">
-                            Rp. {numberWithCommas(detail.hargaP)}
-                          </td>
-                          <td>{detail.quantityP}</td>
-                          <td className="text-start">
-                            Rp. {numberWithCommas(detail.totalHarga)}
-                          </td>
-                          {detailIndex === 0 && (
-                            <>
-                              <td rowSpan={penjualandetail.details.length}>
-                                Rp. {numberWithCommas(detail.grandtotal)}
-                              </td>
-                              <td rowSpan={penjualandetail.details.length}>
-                                {findMetodeById(detail.metodeDet)}
-                              </td>
-                            </>
-                          )}
-                          <td className="text-start">{detail.karyawanNote}</td>
-                          {detailIndex === 0 && (
-                            <td rowSpan={penjualandetail.details.length}>
-                              {formatDate(penjualandetail.tanggalTransaction)}
-                            </td>
-                          )}
-                          {detailIndex === 0 && (
-                            <td
-                              rowSpan={penjualandetail.details.length}
-                              className="text-center"
-                                
-                            >
-                              <Button
-onClick={() => printDetail(penjualandetail)}
-                                variant="success"
-                                  type="button"
-        
-                              >
-                                <SlPrinter className="fs-4" />
-                              </Button>
-                            </td>
-                          )}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
-                <Table borderless>
-                  <tbody className="fw-bold">
-                    <tr>
-                      <td>Cash : Rp. {numberWithCommas(totalCash)}</td>
-                    </tr>
-                    <tr>
-                      <td>Debit / QRIS : Rp. {numberWithCommas(totalDebit)}</td>
-                    </tr>
-                  </tbody>
-                </Table>
-                <Pagination>
-                  <Pagination.Prev
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
+                {isPenjualanTerbanyak ? (
+                  // Jika isPenjualanTerbanyak true, tampilkan komponen PenjualanTerbanyak
+                  <PenjualanTerbanyak
+                    filteredPenjualan={filteredPenjualan}
+                    penjualanTerbanyak={penjualanTerbanyak}
                   />
-                  {pageNumbers.map((number) => (
-                    <Pagination.Item
-                      key={number}
-                      active={number === currentPage}
-                      onClick={() => handlePageChange(number)}
+                ) : (
+                  // Jika isPenjualanTerbanyak false, tampilkan tabel penjualan utama
+                  <>
+                    <Table
+                      bordered
+                      responsive="sm"
+                      size="sm"
+                      className="text-center"
                     >
-                      {number}
-                    </Pagination.Item>
-                  ))}
-                  <Pagination.Next
-                    disabled={currentPage === pageNumbers.length}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                  />
-                </Pagination>
+                      <thead>
+                        <tr>
+                          <th scope="col">No</th>
+                          <th scope="col">Nama</th>
+                          <th scope="col">Perawatan</th>
+                          <th scope="col">Harga</th>
+                          <th scope="col">Quantity</th>
+                          <th scope="col">Total Harga</th>
+                          <th scope="col">Grand Total</th>
+                          <th scope="col">Pembayaran</th>
+                          <th scope="col">Note</th>
+                          <th scope="col">Tanggal Transaksi</th>
+                          <th scope="col">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentItems.map((penjualandetail, index) =>
+                          penjualandetail.details.map((detail, detailIndex) => (
+                            <tr key={`${index}-${detailIndex}`}>
+                              {detailIndex === 0 && (
+                                <>
+                                  <td rowSpan={penjualandetail.details.length}>
+                                    {index + 1}
+                                  </td>
+                                  <td
+                                    className="text-start"
+                                    rowSpan={penjualandetail.details.length}
+                                  >
+                                    {penjualandetail.namaPelanggan}
+                                  </td>
+                                </>
+                              )}
+                              <td className="text-start">
+                                {detail.perawatanPelanggan}
+                              </td>
+                              <td className="text-start">
+                                Rp. {numberWithCommas(detail.hargaP)}
+                              </td>
+                              <td>{detail.quantityP}</td>
+                              <td className="text-start">
+                                Rp. {numberWithCommas(detail.totalHarga)}
+                              </td>
+                              {detailIndex === 0 && (
+                                <>
+                                  <td rowSpan={penjualandetail.details.length}>
+                                    Rp. {numberWithCommas(detail.grandtotal)}
+                                  </td>
+                                  <td rowSpan={penjualandetail.details.length}>
+                                    {findMetodeById(detail.metodeDet)}
+                                  </td>
+                                </>
+                              )}
+                              <td className="text-start">
+                                {detail.karyawanNote}
+                              </td>
+                              {detailIndex === 0 && (
+                                <td rowSpan={penjualandetail.details.length}>
+                                  {formatDate(
+                                    penjualandetail.tanggalTransaction
+                                  )}
+                                </td>
+                              )}
+                              {detailIndex === 0 && (
+                                <td
+                                  rowSpan={penjualandetail.details.length}
+                                  className="text-center"
+                                >
+                                  <Button
+                                    variant="success"
+                                    onClick={() => printDetail(penjualandetail)}
+                                  >
+                                    <SlPrinter className="fs-4" />
+                                  </Button>
+                                </td>
+                              )}
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                    <Table borderless>
+                      <tbody className="fw-bold">
+                        <tr>
+                          <td>Cash : Rp. {numberWithCommas(totalCash)}</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            Debit / QRIS : Rp. {numberWithCommas(totalDebit)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                    <Pagination>
+                      <Pagination.Prev
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                      />
+                      {pageNumbersToShow.map((number) => (
+                        <Pagination.Item
+                          key={number}
+                          active={number === currentPage}
+                          onClick={() => handlePageChange(number)}
+                        >
+                          {number}
+                        </Pagination.Item>
+                      ))}
+                      <Pagination.Next
+                        disabled={currentPage === pageNumbers.length}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                      />
+                    </Pagination>
+                  </>
+                )}
               </>
             )}
           </CardBody>
