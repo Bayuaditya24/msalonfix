@@ -22,6 +22,8 @@ import Tab from "react-bootstrap/Tab";
 import numberWithCommas from "../../utils/utils";
 import Select from "react-select";
 import { FaPlus } from "react-icons/fa6";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { BiEdit } from "react-icons/bi";
 
 function ListCategory() {
   const [categories, setCategories] = useState([]);
@@ -34,6 +36,7 @@ function ListCategory() {
   const [showAllPerawatan, setShowAllPerawatan] = useState(false);
   const itemsPerPage = 10;
   const [showModal, setShowModal] = useState(false);
+  const [editPerawatan, setEditPerawatan] = useState(null);
   const [newPerawatan, setNewPerawatan] = useState({
     namaPerawatan: "",
     kategori: "",
@@ -161,6 +164,48 @@ function ListCategory() {
 
   const totalPages = Math.ceil(filteredPerawatan.length / itemsPerPage);
 
+  const handleEditPerawatan = (perawatan) => {
+    setEditPerawatan(perawatan); // Set the perawatan data to be edited
+    setNewPerawatan({
+      namaPerawatan: perawatan.namaPerawatan,
+      kategori: perawatan.idcategory, // Map the category ID
+      harga: perawatan.harga,
+    });
+    setShowModal(true); // Open the modal to edit perawatan
+  };
+
+  const handleDeletePerawatan = async (id) => {
+    if (window.confirm("Are you sure you want to delete this perawatan?")) {
+      try {
+        await axios.delete(`http://localhost:5000/perawatan/${id}`);
+        // After successful deletion, refresh the list of perawatan
+        handleCategoryChange(selectedCategory);
+      } catch (error) {
+        console.error("Error deleting perawatan:", error);
+        alert("Failed to delete perawatan. Please try again.");
+      }
+    }
+  };
+
+  const handleUpdatePerawatan = async () => {
+    try {
+      await axios.put(`http://localhost:5000/perawatan/${editPerawatan.id}`, {
+        namaPerawatan: newPerawatan.namaPerawatan,
+        harga: parseFloat(newPerawatan.harga),
+        kategori: newPerawatan.kategori,
+      });
+
+      // After updating, fetch perawatan again for the current category
+      handleCategoryChange(selectedCategory); // Refresh perawatan list
+      setShowModal(false); // Close the modal
+      setEditPerawatan(null); // Reset edit state
+      setNewPerawatan({ namaPerawatan: "", kategori: "", harga: "" }); // Reset form
+    } catch (error) {
+      console.error("Error updating perawatan:", error);
+      alert("Failed to update perawatan. Please try again.");
+    }
+  };
+
   return (
     <>
       <Container fluid>
@@ -200,7 +245,18 @@ function ListCategory() {
             </Tab.Container>
             <Row className="mt-3 mb-3">
               <Col>
-                <Button variant="success" onClick={() => setShowModal(true)}>
+                <Button
+                  variant="success"
+                  onClick={() => {
+                    setEditPerawatan(null); // Pastikan editPerawatan di-reset sebelum membuka modal tambah
+                    setNewPerawatan({
+                      namaPerawatan: "",
+                      kategori: "",
+                      harga: "",
+                    });
+                    setShowModal(true);
+                  }}
+                >
                   <FaPlus className="mb-1" /> Tambah Perawatan
                 </Button>
               </Col>
@@ -245,6 +301,7 @@ function ListCategory() {
                       <th scope="col">No</th>
                       <th scope="col">Nama Perawatan</th>
                       <th scope="col">Harga</th>
+                      <th scope="col">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -253,13 +310,42 @@ function ListCategory() {
                         <td>{(page - 1) * itemsPerPage + index + 1}</td>
                         <td>{item.namaPerawatan}</td>
                         <td>Rp {numberWithCommas(item.harga)}</td>
+                        <td>
+                          <Button
+                            onClick={() => handleEditPerawatan(item)}
+                            style={{
+                              border: "none", // Menghapus border tombol
+                              backgroundColor: "transparent", // Menghapus latar belakang tombol
+                              padding: "5px", // Mengatur padding agar ikon tidak terlalu dekat dengan batas tombol
+                            }}
+                          >
+                            <BiEdit style={{ color: "blue" }} />{" "}
+                            {/* Warna untuk ikon Edit */}
+                          </Button>
+                          <Button
+                            onClick={() => handleDeletePerawatan(item.id)}
+                            className="ms-2"
+                            style={{
+                              border: "none", // Menghapus border tombol
+                              backgroundColor: "transparent", // Menghapus latar belakang tombol
+                              padding: "5px", // Mengatur padding agar ikon tidak terlalu dekat dengan batas tombol
+                            }}
+                          >
+                            <FaRegTrashAlt style={{ color: "red" }} />{" "}
+                            {/* Warna untuk ikon Delete */}
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </Table>
                 <Modal show={showModal} onHide={() => setShowModal(false)}>
                   <Modal.Header closeButton>
-                    <Modal.Title>Input Perawatan Baru</Modal.Title>
+                    <Modal.Title>
+                      {editPerawatan
+                        ? "Edit Perawatan"
+                        : "Input Perawatan Baru"}
+                    </Modal.Title>
                   </Modal.Header>
                   <Modal.Body>
                     <Form>
@@ -276,7 +362,6 @@ function ListCategory() {
                               type="text"
                               placeholder="Masukkan Nama Perawatan"
                               value={newPerawatan.namaPerawatan}
-required
                               onChange={(e) =>
                                 setNewPerawatan({
                                   ...newPerawatan,
@@ -287,6 +372,8 @@ required
                           </Col>
                         </Row>
                       </Form.Group>
+
+                      {/* Kategori */}
                       <Form.Group controlId="formKategori" className="mb-3">
                         <Row>
                           <Col sm={4}>
@@ -295,10 +382,14 @@ required
                           <Col sm={8}>
                             <Select
                               options={categoryOptions}
+                              value={categoryOptions.find(
+                                (option) =>
+                                  option.value === newPerawatan.kategori
+                              )}
                               onChange={(selectedOption) =>
                                 setNewPerawatan({
                                   ...newPerawatan,
-                                  kategori: selectedOption.value, // Set the value from the selected option
+                                  kategori: selectedOption.value,
                                 })
                               }
                               placeholder="Pilih Kategori"
@@ -306,6 +397,7 @@ required
                           </Col>
                         </Row>
                       </Form.Group>
+
                       <Form.Group controlId="formHarga" className="mb-3">
                         <Row>
                           <Col sm={4}>
@@ -316,7 +408,6 @@ required
                               type="number"
                               placeholder="Masukkan Harga"
                               value={newPerawatan.harga}
-required
                               onChange={(e) =>
                                 setNewPerawatan({
                                   ...newPerawatan,
@@ -336,8 +427,13 @@ required
                     >
                       Tutup
                     </Button>
-                    <Button variant="primary" onClick={handleSubmit}>
-                      Simpan
+                    <Button
+                      variant="primary"
+                      onClick={
+                        editPerawatan ? handleUpdatePerawatan : handleSubmit
+                      }
+                    >
+                      {editPerawatan ? "Update" : "Simpan"}
                     </Button>
                   </Modal.Footer>
                 </Modal>
