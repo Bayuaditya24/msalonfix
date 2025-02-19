@@ -261,10 +261,15 @@ function Transaksi({
                               )
                             )
                           }
-                          value={{
-                            label: detail.perawatanPelanggan,
-                            value: detail.hargaP,
-                          }}
+                         value={
+                            detail.perawatanPelanggan
+                              ? {
+                                  label: detail.perawatanPelanggan,
+                                  value: detail.hargaP,
+                                }
+                              : null
+                          }
+                          placeholder="Pilih Perawatan"
                         />
                       </td>
 
