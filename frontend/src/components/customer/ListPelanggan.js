@@ -107,10 +107,12 @@ function ListPelanggan() {
               </div>
             ) : (
               <>
-                <Table striped responsive size="sm" className="mt-3">
+                <Table striped bordered responsive size="sm" className="mt-3">
                   <thead>
                     <tr>
-                      <th scope="col">No</th>
+                      <th className="text-center" scope="col">
+                        No
+                      </th>
                       <th scope="col">Nama</th>
                       <th scope="col">No Hp</th>
                       <th scope="col">Alamat</th>
@@ -120,7 +122,9 @@ function ListPelanggan() {
                     {currentItems.length > 0 ? (
                       currentItems.map((pelanggan, index) => (
                         <tr key={pelanggan.id}>
-                          <td>{indexOfFirstItem + index + 1}</td>
+                          <td className="text-center">
+                            {indexOfFirstItem + index + 1}
+                          </td>
                           <td>{pelanggan.namaPelanggan}</td>
                           <td>{pelanggan.nohp}</td>
                           <td>{pelanggan.alamat}</td>
