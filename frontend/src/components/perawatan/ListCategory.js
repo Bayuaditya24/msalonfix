@@ -295,22 +295,34 @@ function ListCategory() {
               </div>
             ) : (
               <>
-                <Table striped responsive size="sm" className="mt-3 mb-5">
+                <Table
+                  striped
+                  bordered
+                  responsive
+                  size="sm"
+                  className="mt-3 mb-5"
+                >
                   <thead>
                     <tr>
-                      <th scope="col">No</th>
+                      <th className="text-center" scope="col">
+                        No
+                      </th>
                       <th scope="col">Nama Perawatan</th>
                       <th scope="col">Harga</th>
-                      <th scope="col">Action</th>
+                      <th className="text-center" scope="col">
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedPerawatan.map((item, index) => (
                       <tr key={item.id}>
-                        <td>{(page - 1) * itemsPerPage + index + 1}</td>
+                        <td className="text-center">
+                          {(page - 1) * itemsPerPage + index + 1}
+                        </td>
                         <td>{item.namaPerawatan}</td>
                         <td>Rp {numberWithCommas(item.harga)}</td>
-                        <td>
+                        <td className="text-center">
                           <Button
                             onClick={() => handleEditPerawatan(item)}
                             style={{
