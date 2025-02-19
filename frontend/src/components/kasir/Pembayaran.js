@@ -45,94 +45,10 @@ const Pembayaran = ({ logobeaty }) => {
     );
   }
 
-  const handleNoteChange = (id, value) => {
-    setTransaktionP((prevTransaktionP) =>
-      prevTransaktionP.map((item) =>
-        item.id === id ? { ...item, karyawanNote: value } : item
-      )
-    );
-  };
-
   // Get tanggal
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setTanggalTransaction(today);
-  }, []);
-
-  // Increase counter
-  const increase = () => {
-    quantityP < hargaP ? setQuantityP(quantityP + 1) : setQuantityP("");
-    setTotalHarga(Number(totalHarga) + Number(hargaP));
-  };
-
-  // Decrease counter
-  const decrease = () => {
-    quantityP > 1 ? setQuantityP(quantityP - 1) : setQuantityP(1);
-    totalHarga > hargaP
-      ? setTotalHarga(totalHarga - hargaP)
-      : setTotalHarga(hargaP);
-  };
-
-  // Fungsi select perawatan
-  function handleSelected(selectedOption) {
-    setHargaP(selectedOption ? selectedOption.value : 0);
-    setPerawatan(selectedOption);
-    setTotalHarga(selectedOption ? selectedOption.value : 0);
-  }
-
-  // Fungsi push perawatan
-  function handleSelect(e) {
-    e.preventDefault();
-    const detail = {
-      id: Date.now(),
-      perawatanPelanggan: perawatanPelanggan ? perawatanPelanggan.label : "",
-      hargaP,
-      quantityP,
-      totalHarga,
-      idcategory: perawatanPelanggan ? perawatanPelanggan.idcategory : null, // Tambahkan idcategory
-    };
-    setTransaktionP([...transaktionP, detail]);
-
-    setQuantityP(1);
-    setPerawatan(null);
-
-    console.log(transaktionP);
-    console.log(detail);
-  }
-
-  // Fungsi hapus perawatan
-  function handleRemove(id) {
-    setTransaktionP(transaktionP.filter((item) => item.id !== id));
-  }
-
-  // Get perawatan dari database
-  useEffect(() => {
-    const getPrawatan = async () => {
-      try {
-        const resprawatan = await fetch("http://localhost:5000/perawatan");
-        const resprt = await resprawatan.json();
-
-        setPrawatan(
-          resprt.map((p) => ({
-            value: p.harga,
-            label:
-              p.idcategory === 2
-                ? `${p.namaPerawatan}`
-                : p.idcategory === 4
-                ? `${p.namaPerawatan} `
-                : p.idcategory === 3
-                ? `${p.namaPerawatan} `
-                : p.idcategory === 1
-                ? `${p.namaPerawatan}`
-                : p.namaPerawatan,
-            idcategory: p.idcategory, // Tambahkan idcategory ke opsi
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching perawatan data:", error);
-      }
-    };
-    getPrawatan();
   }, []);
 
   // Simpan pelanggan
@@ -169,11 +85,11 @@ const Pembayaran = ({ logobeaty }) => {
             <h6 className="container mr-6 mt-2">Pelanggan</h6>
             <Form onSubmit={handleSubmit}>
               <Card.Body>
-                <Form.Group className="row mb-4" controlId="formNama">
+                <Form.Group className="row mb-2" controlId="formNama">
                   <Form.Label column sm="3">
                     Nama
                   </Form.Label>
-                  <Col sm="9">
+                  <Col sm="8">
                     <input
                       className="form-control"
                       type="text"
@@ -184,25 +100,27 @@ const Pembayaran = ({ logobeaty }) => {
                     />
                   </Col>
                 </Form.Group>
-                <FormGroup className="row mb-4">
+
+                <FormGroup className="row mb-2">
                   <FormLabel column sm="3">
                     Tanggal
                   </FormLabel>
-                  <Col className="col-5">
+                  <Col sm="8">
                     <input
                       type="date"
                       className="form-control"
                       value={tanggalTransaction}
                       onChange={(e) => setTanggalTransaction(e.target.value)}
                       disabled={isSubmitted} // Disable if submitted
-                    ></input>
+                    />
                   </Col>
                 </FormGroup>
-                <Form.Group className="row mb-4" controlId="formHandphone">
+
+                <Form.Group className="row mb-2" controlId="formHandphone">
                   <Form.Label column sm="3">
                     Phone
                   </Form.Label>
-                  <Col sm="9">
+                  <Col sm="8">
                     <input
                       className="input form-control"
                       type="text"
@@ -213,11 +131,12 @@ const Pembayaran = ({ logobeaty }) => {
                     />
                   </Col>
                 </Form.Group>
-                <Form.Group className="row mb-4" controlId="formAlamat">
+
+                <Form.Group className="row mb-2" controlId="formAlamat">
                   <Form.Label column sm="3">
                     Alamat
                   </Form.Label>
-                  <Col sm="9">
+                  <Col sm="8">
                     <textarea
                       className="input form-control"
                       type="text"
@@ -230,7 +149,7 @@ const Pembayaran = ({ logobeaty }) => {
                 </Form.Group>
 
                 <Button
-                  className="mt-3"
+                  className="mt-2"
                   type="submit"
                   onClick={() => updateToggle(1)}
                   disabled={isSubmitted} // Disable if submitted
@@ -255,54 +174,10 @@ const Pembayaran = ({ logobeaty }) => {
               </Card>
             </Col>
           </Row>
-          <Card className={toggle === 1 ? "show-content" : "content"}>
-            <h6 className="container mr-6 mt-2">Perawatan</h6>
-            <CardBody>
-              <Col className="col-sm mb-2">
-                <InputGroup>
-                  <Select
-                    className="col-8"
-                    options={prawatan}
-                    onChange={handleSelected}
-                    value={perawatanPelanggan}
-                    placeholder="Pilih Perawatan"
-                  />
-                </InputGroup>
-              </Col>
-
-              <ButtonGroup className="col-3 text-center mt-4 mb-3">
-                <Button variant="light" onClick={decrease}>
-                  <FaMinus />
-                </Button>
-                <Button
-                  className="col-4"
-                  variant="white"
-                  onChange={(e) => setQuantityP(e.target.value)}
-                  value={quantityP}
-                  name="perawatanQuantity"
-                >
-                  {quantityP}
-                </Button>
-                <Button variant="light" onClick={increase}>
-                  <FaPlus />
-                </Button>
-              </ButtonGroup>
-
-              <Col className="text-start">
-                <Button
-                  variant="success"
-                  className="mt-5 col"
-                  type="submit"
-                  onClick={handleSelect}
-                >
-                  <FaPlus className="mb-1 " /> Tambah
-                </Button>
-              </Col>
-            </CardBody>
-          </Card>
         </Col>
       </Row>
-      <Col>
+
+      <Col className="mb-5">
         <div className={toggle === 1 ? "show-content" : "content"}>
           <Card className="mt-3">
             <CardBody>
@@ -311,12 +186,9 @@ const Pembayaran = ({ logobeaty }) => {
                 namaPelanggan={namaPelanggan}
                 transaktionP={transaktionP}
                 tanggalTransaction={tanggalTransaction}
-                handleRemove={handleRemove}
-                handleNoteChange={handleNoteChange}
                 karyawanNote={karyawanNote}
                 handlePriceChange={handlePriceChange}
                 newPrice={newPrice}
-                handleSelect={handleSelect}
               />
             </CardBody>
           </Card>
