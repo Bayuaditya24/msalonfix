@@ -22,6 +22,8 @@ import * as XLSX from "xlsx";
 import InputGroupText from "react-bootstrap/esm/InputGroupText";
 import { SlPrinter } from "react-icons/sl";
 import PenjualanTerbanyak from "./PenjualanTerbanyak"; // Import komponen baru
+import { FaRegTrashCan } from "react-icons/fa6";
+import Swal from "sweetalert2";
 
 function ListPenjualan() {
   const [penjualan, setPenjualan] = useState([]);
@@ -90,6 +92,49 @@ function ListPenjualan() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (id, namaPelanggan, tanggalTransaction) => {
+    // Menampilkan konfirmasi SweetAlert sebelum menghapus
+    Swal.fire({
+      title: "Apakah Anda yakin?",
+      text: `Anda akan menghapus penjualan "${namaPelanggan}" tanggal "${tanggalTransaction}".`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Tidak, batal",
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        console.log("Deleting Penjualan with ID:", id); // Cek apakah ID terdeteksi dengan benar
+        try {
+          const response = await fetch(
+            `http://localhost:5000/penjualan/${id}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (response.ok) {
+            // Tampilkan notifikasi sukses menggunakan SweetAlert
+            Swal.fire("Dihapus!", "Penjualan berhasil dihapus.", "success");
+            // Perbarui daftar penjualan setelah penghapusan
+            setFilteredPenjualan(
+              filteredPenjualan.filter((item) => item.id !== id)
+            );
+          } else {
+            // Tampilkan notifikasi gagal menggunakan SweetAlert
+            Swal.fire("Gagal", "Gagal menghapus penjualan.", "error");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          Swal.fire("Error", "Terjadi kesalahan, coba lagi nanti.", "error");
+        }
+      } else {
+        // Jika pengguna membatalkan
+        Swal.fire("Dibatalkan", "Penghapusan dibatalkan.", "info");
+      }
+    });
   };
 
   const getMetodes = async () => {
@@ -452,30 +497,66 @@ function ListPenjualan() {
                   // Jika isPenjualanTerbanyak false, tampilkan tabel penjualan utama
                   <>
                     <Table
-                      bordered
+                      borderless
                       responsive="sm"
                       size="sm"
-                      className="text-center"
+                      className="text-sm-center"
                     >
-                      <thead>
+                      <thead
+                        style={{
+                          border: "1px solid ", // Border untuk seluruh thead
+                          backgroundColor: "#f1f1f1", // (Opsional) memberi latar belakang abu-abu terang untuk header
+                        }}
+                      >
                         <tr>
                           <th scope="col">No</th>
-                          <th scope="col">Nama</th>
-                          <th scope="col">Perawatan</th>
-                          <th scope="col">Harga</th>
+                          <th scope="col" className="text-start">
+                            Nama
+                          </th>
+                          <th scope="col" className="text-start">
+                            Perawatan
+                          </th>
+                          <th scope="col" className="text-start">
+                            Harga
+                          </th>
                           <th scope="col">Quantity</th>
-                          <th scope="col">Total Harga</th>
-                          <th scope="col">Grand Total</th>
-                          <th scope="col">Pembayaran</th>
-                          <th scope="col">Note</th>
-                          <th scope="col">Tanggal Transaksi</th>
+                          <th scope="col" className="text-start">
+                            Total Harga
+                          </th>
+                          <th scope="col" className="text-start">
+                            Grand Total
+                          </th>
+                          <th scope="col" className="text-start">
+                            Pembayaran
+                          </th>
+                          <th scope="col" className="text-start">
+                            Note
+                          </th>
+                          <th scope="col" className="text-start">
+                            Tanggal Transaksi
+                          </th>
                           <th scope="col">Action</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody
+                        style={{
+                          border: "1px solid", // Border untuk seluruh thead
+                          backgroundColor: "#f1f1f1", // (Opsional) memberi latar belakang abu-abu terang untuk header
+                        }}
+                      >
                         {currentItems.map((penjualandetail, index) =>
                           penjualandetail.details.map((detail, detailIndex) => (
-                            <tr key={`${index}-${detailIndex}`}>
+                            <tr
+                              key={`${penjualandetail.id}-${index}-${detailIndex}`}
+                              style={{
+                                borderBottom:
+                                  detailIndex ===
+                                  penjualandetail.details.length - 1
+                                    ? "1px solid "
+                                    : "none", // Border-bottom for customer
+                              }}
+                              className={index % 2 === 0 ? "table-light" : ""}
+                            >
                               {detailIndex === 0 && (
                                 <>
                                   <td rowSpan={penjualandetail.details.length}>
@@ -501,10 +582,16 @@ function ListPenjualan() {
                               </td>
                               {detailIndex === 0 && (
                                 <>
-                                  <td rowSpan={penjualandetail.details.length}>
+                                  <td
+                                    className="text-start"
+                                    rowSpan={penjualandetail.details.length}
+                                  >
                                     Rp. {numberWithCommas(detail.grandtotal)}
                                   </td>
-                                  <td rowSpan={penjualandetail.details.length}>
+                                  <td
+                                    className="text-start"
+                                    rowSpan={penjualandetail.details.length}
+                                  >
                                     {findMetodeById(detail.metodeDet)}
                                   </td>
                                 </>
@@ -513,7 +600,10 @@ function ListPenjualan() {
                                 {detail.karyawanNote}
                               </td>
                               {detailIndex === 0 && (
-                                <td rowSpan={penjualandetail.details.length}>
+                                <td
+                                  className="text-start"
+                                  rowSpan={penjualandetail.details.length}
+                                >
                                   {formatDate(
                                     penjualandetail.tanggalTransaction
                                   )}
@@ -527,8 +617,28 @@ function ListPenjualan() {
                                   <Button
                                     variant="success"
                                     onClick={() => printDetail(penjualandetail)}
+                                    size="sm" // Make the button smaller
+                                    style={{ marginRight: "8px" }}
                                   >
-                                    <SlPrinter className="fs-4" />
+                                    <SlPrinter className="fs-5" />{" "}
+                                    {/* Reduce the icon size */}
+                                  </Button>
+                                  <Button
+                                    variant="danger"
+                                    onClick={() =>
+                                      handleDelete(
+                                        penjualandetail.id ||
+                                          penjualandetail.details[0]?.id,
+                                        penjualandetail.namaPelanggan,
+                                        formatDate(
+                                          penjualandetail.tanggalTransaction
+                                        ) // Ensure the date is formatted
+                                      )
+                                    }
+                                    size="sm" // Make the button smaller
+                                  >
+                                    <FaRegTrashCan className="fs-5" />{" "}
+                                    {/* Reduce the icon size */}
                                   </Button>
                                 </td>
                               )}
