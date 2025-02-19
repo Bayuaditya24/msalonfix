@@ -14,26 +14,92 @@ import { useNavigate } from "react-router-dom";
 import numberWithCommas from "../../utils/utils";
 import { Form } from "react-bootstrap";
 import { BsCart4 } from "react-icons/bs";
-import { FaTrashCan } from "react-icons/fa6";
+import { FaTrashCan, FaPlus, FaMinus } from "react-icons/fa6";
 import Select from "react-select";
 import "./table.css";
+
 function Transaksi({
-  transaktion,
   namaPelanggan,
-  transaktionP,
+
   tanggalTransaction,
-  handleRemove,
-  handleNoteChange,
-  karyawanNote,
-  handlePriceChange,
 }) {
   const navigate = useNavigate();
-  const [grandTotal, setGrandTotal] = useState(0); // State untuk menyimpan grand total
+  const [grandTotal, setGrandTotal] = useState(0);
   const [metod, setMetod] = useState([]);
-  const [metodeDet, setMetodeDet] = useState(null); // Mengubah tipe state menjadi object
+  const [metodeDet, setMetodeDet] = useState(null);
   const [newPrice, setNewPrice] = useState("");
+  const [transaktionP, setTransaktionP] = useState([
+    {
+      id: Date.now(),
+      perawatanPelanggan: "",
+      hargaP: 0,
+      quantityP: 1,
+      totalHarga: 0,
+      karyawanNote: null,
+    },
+  ]);
+  const [prawatan, setPrawatan] = useState([]);
 
-  // Menghitung grand total saat ada perubahan pada transaksiP
+  // Pastikan Anda sudah mendefinisikan fungsi handleNoteChange di luar komponen
+  const handleNoteChange = (id, newNote) => {
+    setTransaktionP((prevTransaktionP) =>
+      prevTransaktionP.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              karyawanNote: newNote, // Update karyawanNote
+            }
+          : item
+      )
+    );
+  };
+
+  useEffect(() => {
+    const fetchPrawatan = async () => {
+      const res = await fetch("http://localhost:5000/perawatan"); // Replace with your API endpoint
+      const data = await res.json();
+      setPrawatan(
+        data.map((item) => ({
+          value: item.id,
+          label: item.namaPerawatan,
+          harga: item.harga, // Assuming price field is "harga"
+        }))
+      );
+    };
+    fetchPrawatan();
+  }, []);
+
+  // Handle quantity increase
+  const increaseQuantity = (id) => {
+    setTransaktionP((prevTransaktionP) =>
+      prevTransaktionP.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              quantityP: item.quantityP + 1,
+              totalHarga: (item.quantityP + 1) * item.hargaP,
+            }
+          : item
+      )
+    );
+  };
+
+  // Handle quantity decrease
+  const decreaseQuantity = (id) => {
+    setTransaktionP((prevTransaktionP) =>
+      prevTransaktionP.map((item) =>
+        item.id === id && item.quantityP > 1
+          ? {
+              ...item,
+              quantityP: item.quantityP - 1,
+              totalHarga: (item.quantityP - 1) * item.hargaP,
+            }
+          : item
+      )
+    );
+  };
+
+  // Calculate grand total
   useEffect(() => {
     let total = 0;
     transaktionP.forEach((item) => {
@@ -45,7 +111,7 @@ function Transaksi({
     setGrandTotal(total);
   }, [transaktionP]);
 
-  // Get metode dari database
+  // Get payment methods from backend
   useEffect(() => {
     const getMetode = async () => {
       const resmetod = await fetch("http://localhost:5000/metode");
@@ -64,7 +130,19 @@ function Transaksi({
     setMetodeDet(selectedOption);
   }
 
-  // Handle submit transaksi
+  // Handle adding a new item
+  const addItem = () => {
+    const newItem = {
+      id: Date.now(),
+      perawatanPelanggan: null,
+      hargaP: 0,
+      quantityP: 1,
+      totalHarga: 0,
+    };
+    setTransaktionP([...transaktionP, newItem]);
+  };
+
+  // Handle submitting the transaction
   const handleTrans = async (e) => {
     e.preventDefault();
 
@@ -110,25 +188,17 @@ function Transaksi({
     }
   };
 
+  // Fungsi untuk menghapus item berdasarkan id
+  const handleRemove = (id) => {
+    setTransaktionP(
+      (prevTransaktionP) => prevTransaktionP.filter((item) => item.id !== id) // Menghapus item berdasarkan ID
+    );
+  };
+
   return (
     <Row>
       <Col>
         <Form onSubmit={(e) => handleTrans(e)}>
-          {transaktion.map((item, i) => (
-            <Card key={i} style={{ display: "none" }}>
-              <CardBody>
-                <Row>
-                  <Col className="form-text">
-                    <strong>Nama Pelanggan:</strong> {item.namaPelanggan}
-                  </Col>
-                  <Col className="form-text">
-                    <strong>Tanggal:</strong> {item.tanggalTransaction}
-                  </Col>
-                </Row>
-              </CardBody>
-            </Card>
-          ))}
-
           <Col className="col-sm mb-2">
             <InputGroup>
               <Select
@@ -141,46 +211,117 @@ function Transaksi({
             </InputGroup>
           </Col>
 
-          <Card className="mt-3">
+          <Card className="mt-3 mb-5">
             <CardBody>
-              <Table borderless responsive className="text-center" size="sm">
+              <Table bordered className="text-center" size="sm">
                 <thead>
                   <tr>
-                    <th>No</th>
+                    <th
+                      className="bg-success py-2 border btn-success"
+                      onClick={addItem}
+                      style={{ cursor: "pointer", width: "50px" }}
+                    >
+                      <FaPlus style={{ color: "white" }} />
+                    </th>
                     <th>Perawatan</th>
                     <th>Harga</th>
                     <th>Quantity</th>
                     <th>Total Harga</th>
                     <th>Note</th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {transaktionP.map((detail, index) => (
                     <tr key={detail.id}>
-                      <td>{index + 1}</td>
-                      <td>{detail.perawatanPelanggan}</td>
-                      {detail.idcategory === 2 || detail.idcategory === 4 || detail.idcategory === 1 || detail.idcategory === 3 ? (
-                        <td className="currency-input col-2">
-                          <input
-                            className="form-control"
-                            type="number"
-                            value={detail.hargaP}
-                            onChange={(e) =>
-                              handlePriceChange(
-                                detail.id,
-                                parseFloat(e.target.value)
+                      <td
+                        className="bg-danger border pt-2 btn-danger"
+                        onClick={() => handleRemove(detail.id)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <FaTrashCan
+                          className="fs-5"
+                          style={{ color: "white" }}
+                        />
+                      </td>
+                      <td style={{ width: "250px" }}>
+                        <Select
+                          options={prawatan}
+                          onChange={(selectedOption) =>
+                            setTransaktionP((prevTransaktionP) =>
+                              prevTransaktionP.map((item) =>
+                                item.id === detail.id
+                                  ? {
+                                      ...item,
+                                      perawatanPelanggan: selectedOption.label,
+                                      hargaP: selectedOption.harga,
+                                      totalHarga:
+                                        selectedOption.harga * detail.quantityP,
+                                    }
+                                  : item
                               )
-                            }
-                          />
-                        </td>
-                      ) : (
-                        <td className="text-start">
-                          Rp. {numberWithCommas(detail.hargaP)}
-                        </td>
-                      )}
-                      <td>{detail.quantityP}</td>
-                      <td>Rp. {numberWithCommas(detail.totalHarga)}</td>
+                            )
+                          }
+                          value={{
+                            label: detail.perawatanPelanggan,
+                            value: detail.hargaP,
+                          }}
+                        />
+                      </td>
+
+                      <td style={{ width: "180px" }}>
+                        <input
+                          className="form-control"
+                          type="number"
+                          value={detail.hargaP}
+                          onChange={(e) => {
+                            const newHarga = parseFloat(e.target.value) || 0;
+                            setTransaktionP((prevTransaktionP) =>
+                              prevTransaktionP.map((item) =>
+                                item.id === detail.id
+                                  ? {
+                                      ...item,
+                                      hargaP: newHarga,
+                                      totalHarga: newHarga * item.quantityP, // Update totalHarga
+                                    }
+                                  : item
+                              )
+                            );
+                          }}
+                        />
+                      </td>
+
+                      <td className="d-flex justify-content-center align-items-center">
+                        <Button
+                          variant="light"
+                          onClick={() => decreaseQuantity(detail.id)}
+                          className="fs-8" // Menambah ukuran font agar lebih kecil
+                        >
+                          <FaMinus />
+                        </Button>
+                        <input
+                          className="form-control text-center fs-8 mx-2 " // Mengatur input lebih kecil dan center
+                          type="number"
+                          value={detail.quantityP}
+                          readOnly
+                          style={{ width: "60px" }} // Mengatur lebar input lebih kecil
+                        />
+                        <Button
+                          variant="light"
+                          onClick={() => increaseQuantity(detail.id)}
+                          className="fs-8" // Menambah ukuran font agar lebih kecil
+                        >
+                          <FaPlus />
+                        </Button>
+                      </td>
+
+                      <td style={{ width: "150px" }}>
+                        <input
+                          className="form-control"
+                          readOnly
+                          value={`Rp. ${numberWithCommas(detail.totalHarga)}`}
+                        />
+                      </td>
+
                       <td>
                         <input
                           className="form-control"
@@ -191,23 +332,19 @@ function Transaksi({
                           }
                         />
                       </td>
-                      <td
-                        variant="button"
-                        className="text-danger"
-                        onClick={() => handleRemove(detail.id)}
-                      >
-                        <FaTrashCan className="fs-4 mb-1" type="button" />
-                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="fw-bold mt-3">
                   <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Rp. {numberWithCommas(grandTotal)}</td>
+                    <td colSpan={4}></td>
+                    <td>
+                      <input
+                        className="form-control fw-bold"
+                        readOnly
+                        value={`Rp. ${numberWithCommas(grandTotal)}`}
+                      />
+                    </td>
                     <td></td>
                   </tr>
                 </tfoot>
