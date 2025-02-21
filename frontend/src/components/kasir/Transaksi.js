@@ -18,11 +18,7 @@ import { FaTrashCan, FaPlus, FaMinus } from "react-icons/fa6";
 import Select from "react-select";
 import "./table.css";
 
-function Transaksi({
-  namaPelanggan,
-
-  tanggalTransaction,
-}) {
+function Transaksi({ namaPelanggan, nohp, alamat, tanggalTransaction }) {
   const navigate = useNavigate();
   const [grandTotal, setGrandTotal] = useState(0);
   const [metod, setMetod] = useState([]);
@@ -146,6 +142,30 @@ function Transaksi({
   const handleTrans = async (e) => {
     e.preventDefault();
 
+    // Validasi: Pastikan nama pelanggan tidak kosong
+    if (!namaPelanggan || namaPelanggan.trim() === "") {
+      Swal.fire({
+        title: "Error",
+        text: "Nama pelanggan harus diisi!",
+        icon: "error",
+      });
+      return;
+    }
+
+    // Validasi: Pastikan ada perawatan yang dipilih atau ditambahkan
+    const perawatanKosong = transaktionP.some(
+      (item) =>
+        !item.perawatanPelanggan || item.perawatanPelanggan.trim() === ""
+    );
+    if (perawatanKosong) {
+      Swal.fire({
+        title: "Error",
+        text: "Perawatan pelanggan tidak boleh kosong!",
+        icon: "error",
+      });
+      return;
+    }
+
     if (!metodeDet) {
       Swal.fire({
         title: "Error",
@@ -156,12 +176,22 @@ function Transaksi({
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/penjualan", {
+      // Menyimpan data pelanggan terlebih dahulu
+      const resPelanggan = await axios.post("http://localhost:5000/pelanggan", {
+        namaPelanggan,
+        nohp,
+        alamat,
+      });
+
+      const pelangganId = resPelanggan.data.id;
+
+      // Menyimpan transaksi
+      const resPenjualan = await axios.post("http://localhost:5000/penjualan", {
         namaPelanggan,
         tanggalTransaction,
       });
 
-      const penjualanId = res.data.id;
+      const penjualanId = resPenjualan.data.id;
 
       await Promise.all(
         transaktionP.map((item) =>
@@ -211,7 +241,7 @@ function Transaksi({
             </InputGroup>
           </Col>
 
-          <Card className="mt-3 mb-5">
+          <Card className="mt-3 mb-3">
             <CardBody>
               <Table bordered className="text-center" size="sm">
                 <thead>
@@ -246,6 +276,7 @@ function Transaksi({
                       <td style={{ width: "250px" }}>
                         <Select
                           options={prawatan}
+                          isClearable
                           onChange={(selectedOption) =>
                             setTransaktionP((prevTransaktionP) =>
                               prevTransaktionP.map((item) =>
@@ -261,7 +292,7 @@ function Transaksi({
                               )
                             )
                           }
-                         value={
+                          value={
                             detail.perawatanPelanggan
                               ? {
                                   label: detail.perawatanPelanggan,
@@ -356,7 +387,7 @@ function Transaksi({
               </Table>
             </CardBody>
           </Card>
-          <Row className="text-end mt-3">
+          <Row className="text-end mt-2">
             <Col>
               <Button variant="success" type="submit">
                 <BsCart4 className="mb-1" /> Checkout
