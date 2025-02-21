@@ -283,7 +283,7 @@ function ListPenjualan() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const generatePrintContent = (penjualandetail) => {
+ const generatePrintContent = (penjualandetail) => {
     const now = new Date(); // Ambil waktu sekarang
     return `
       <html>
@@ -305,12 +305,12 @@ function ListPenjualan() {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/images/logosm.png" alt="Logo MSalon">
+            <img src="/images/logosm.png">
             <p>Jl. Dharma Giri Bitera Gianyar</p>
           </div>
           <p>${formatDate(penjualandetail.tanggalTransaction)} ${formatTime(
       now
-    )}</p> <!-- Tambahkan waktu di sini -->
+    )}</p> 
           <table class="table">
             <thead>
               <tr>
@@ -344,6 +344,24 @@ function ListPenjualan() {
   };
 
   const handlePrint = (content) => {
+    // Menampilkan elemen loading
+    const loadingIndicator = document.createElement("div");
+    loadingIndicator.innerText = "Loading..."; // Bisa juga menggunakan spinner
+    loadingIndicator.style.position = "fixed";
+    loadingIndicator.style.top = "0";
+    loadingIndicator.style.left = "0";
+    loadingIndicator.style.width = "100%";
+    loadingIndicator.style.height = "100%";
+    loadingIndicator.style.backgroundColor = "rgba(255, 255, 255, 0.7)"; // Latar belakang semi-transparan
+    loadingIndicator.style.display = "flex";
+    loadingIndicator.style.justifyContent = "center";
+    loadingIndicator.style.alignItems = "center";
+    loadingIndicator.style.fontSize = "24px";
+    loadingIndicator.style.fontWeight = "bold";
+    loadingIndicator.style.zIndex = "9999"; // Pastikan loading berada di atas elemen lainnya
+    loadingIndicator.style.textAlign = "center"; // Menyelaraskan teks ke tengah
+    document.body.appendChild(loadingIndicator);
+
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
 
@@ -357,12 +375,18 @@ function ListPenjualan() {
     iframe.contentWindow.document.write(content);
     iframe.contentWindow.document.close();
 
-    // Tunggu sejenak dan kemudian cetak
-    iframe.contentWindow.focus();
-    setTimeout(() => {
-      iframe.contentWindow.print();
-      document.body.removeChild(iframe); // Hapus iframe setelah mencetak
-    }, 100);
+    // Menambahkan event listener untuk menunggu hingga iframe selesai dimuat
+    iframe.onload = () => {
+      // Sembunyikan indikator loading
+      document.body.removeChild(loadingIndicator);
+
+      // Fokus pada iframe dan cetak
+      iframe.contentWindow.focus();
+      setTimeout(() => {
+        iframe.contentWindow.print();
+        document.body.removeChild(iframe); // Hapus iframe setelah mencetak
+      }, 100);
+    };
   };
 
   const handlePageChange = (pageNumber) => {
