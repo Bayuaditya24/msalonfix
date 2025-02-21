@@ -19,7 +19,7 @@ function ListPelanggan() {
   const [filteredPelanggan, setFilteredPelanggan] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5); // Set items per page to 5
+  const [itemsPerPage] = useState(10); // Set items per page to 5
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
