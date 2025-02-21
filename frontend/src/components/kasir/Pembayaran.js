@@ -21,12 +21,6 @@ import Select from "react-select";
 const Pembayaran = ({ logobeaty }) => {
   const [namaPelanggan, setNamaPelanggan] = useState("");
   const [transaktion, setTransaktion] = useState([]);
-  const [toggle, setToggle] = React.useState();
-  const [prawatan, setPrawatan] = useState([]);
-  const [perawatanPelanggan, setPerawatan] = useState(null);
-  const [hargaP, setHargaP] = useState([]);
-  const [quantityP, setQuantityP] = useState(1);
-  const [totalHarga, setTotalHarga] = useState([]);
   const [transaktionP, setTransaktionP] = useState([]);
   const [tanggalTransaction, setTanggalTransaction] = useState("");
   const [nohp, setNohp] = useState("");
@@ -51,39 +45,13 @@ const Pembayaran = ({ logobeaty }) => {
     setTanggalTransaction(today);
   }, []);
 
-  // Simpan pelanggan
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newTransaktion = { namaPelanggan, tanggalTransaction, nohp, alamat };
-
-    try {
-      await axios.post("http://localhost:5000/pelanggan", {
-        namaPelanggan,
-        nohp,
-        alamat,
-      });
-
-      console.log(newTransaktion);
-      setTransaktion([...transaktion, newTransaktion]);
-      setIsSubmitted(true); // Set submitted status to true
-    } catch (error) {
-      console.log(error);
-    }
-
-    console.log(newTransaktion);
-  };
-
-  function updateToggle(id) {
-    setToggle(id);
-  }
-
   return (
     <>
       <Row>
         <Col>
           <Card>
             <h6 className="container mr-6 mt-2">Pelanggan</h6>
-            <Form onSubmit={handleSubmit}>
+            <Form>
               <Card.Body>
                 <Form.Group className="row mb-2" controlId="formNama">
                   <Form.Label column sm="3">
@@ -147,15 +115,6 @@ const Pembayaran = ({ logobeaty }) => {
                     />
                   </Col>
                 </Form.Group>
-
-                <Button
-                  className="mt-2"
-                  type="submit"
-                  onClick={() => updateToggle(1)}
-                  disabled={isSubmitted} // Disable if submitted
-                >
-                  Submit
-                </Button>
               </Card.Body>
             </Form>
           </Card>
@@ -178,21 +137,21 @@ const Pembayaran = ({ logobeaty }) => {
       </Row>
 
       <Col className="mb-5">
-        <div className={toggle === 1 ? "show-content" : "content"}>
-          <Card className="mt-3">
-            <CardBody>
-              <Transaksi
-                transaktion={transaktion}
-                namaPelanggan={namaPelanggan}
-                transaktionP={transaktionP}
-                tanggalTransaction={tanggalTransaction}
-                karyawanNote={karyawanNote}
-                handlePriceChange={handlePriceChange}
-                newPrice={newPrice}
-              />
-            </CardBody>
-          </Card>
-        </div>
+        <Card className="mt-2">
+          <CardBody>
+            <Transaksi
+              transaktion={transaktion}
+              namaPelanggan={namaPelanggan}
+              transaktionP={transaktionP}
+              tanggalTransaction={tanggalTransaction}
+              karyawanNote={karyawanNote}
+              handlePriceChange={handlePriceChange}
+              newPrice={newPrice}
+              nohp={nohp}
+              alamat={alamat}
+            />
+          </CardBody>
+        </Card>
       </Col>
     </>
   );
