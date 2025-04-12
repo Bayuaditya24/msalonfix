@@ -42,6 +42,20 @@ function ListPenjualan() {
   const pageNumbersToShow = [];
   const [isPenjualanTerbanyak, setIsPenjualanTerbanyak] = useState(false);
   const [penjualanTerbanyak, setPenjualanTerbanyak] = useState([]);
+  const [metodePembayaranList, setMetodePembayaranList] = useState([]);
+
+  useEffect(() => {
+    const fetchMetodePembayaran = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/metode");
+        setMetodePembayaranList(res.data);
+      } catch (err) {
+        console.error("Gagal ambil metode pembayaran:", err);
+      }
+    };
+
+    fetchMetodePembayaran();
+  }, []);
 
   useEffect(() => {
     if (isPenjualanTerbanyak) {
@@ -207,60 +221,102 @@ function ListPenjualan() {
   };
 
   const exportToExcel = () => {
-    const wsData = filteredPenjualan.map((penjualandetail) => {
-      const perawatanDetails = penjualandetail.details
-        .map(
-          (detail) =>
-            `${detail.perawatanPelanggan} (${
-              detail.quantityP
-            }x Rp. ${numberWithCommas(detail.totalHarga)})`
-        )
-        .join(", ");
+    const rows = [];
+    let totalSemuaCash = 0;
+    let totalSemuaQRIS = 0;
 
-      return {
-        Nama: penjualandetail.namaPelanggan,
-        Perawatan_Details: perawatanDetails,
-        Grand_Total: `Rp. ${numberWithCommas(
-          penjualandetail.details.reduce(
-            (sum, detail) => sum + parseFloat(detail.totalHarga),
-            0
-          )
-        )}`,
-        Tanggal_Transaksi: formatDate(penjualandetail.tanggalTransaction),
-        Metode_Pembayaran: findMetodeById(penjualandetail.details[0].metodeDet),
-        Note: penjualandetail.details
-          .map((detail) => detail.karyawanNote)
-          .filter((note) => note)
-          .join(", "),
-      };
+    const getMetodeLabel = (id) => {
+      const metode = metodePembayaranList.find((m) => m.id === id);
+      return metode?.metodeP?.toLowerCase() || "";
+    };
+
+    const displayedDates = new Set(); // untuk tampilkan tanggal hanya sekali
+
+    // Gunakan filteredPenjualan langsung (hasil dari filter yang aktif)
+    filteredPenjualan.forEach((penjualan) => {
+      const dateObj = new Date(penjualan.tanggalTransaction);
+      const fullDate = formatDate(penjualan.tanggalTransaction);
+      const namaPelanggan = penjualan.namaPelanggan;
+
+      // Cek apakah tanggal ini sudah ditampilkan sebelumnya
+      const dateKey = `${dateObj.getDate()}-${dateObj.getMonth()}-${dateObj.getFullYear()}`;
+      const showTanggal = !displayedDates.has(dateKey);
+      if (showTanggal) displayedDates.add(dateKey);
+
+      penjualan.details.forEach((detail, index) => {
+        const metode = getMetodeLabel(detail.metodeDet);
+        const isCash = metode.includes("cash");
+        const isQRIS = metode.includes("qris");
+
+        const totalPerRow = parseFloat(detail.totalHarga) || 0;
+        if (isCash) totalSemuaCash += totalPerRow;
+        else if (isQRIS) totalSemuaQRIS += totalPerRow;
+
+        rows.push([
+          showTanggal && index === 0 ? fullDate : "", // Tampilkan tanggal hanya 1x
+          index === 0 ? namaPelanggan : "", // Tampilkan nama pelanggan 1x
+          `${detail.perawatanPelanggan} (x${detail.quantityP})`,
+          isCash ? "Cash" : "",
+          isQRIS ? "QRIS" : "",
+          `Rp. ${numberWithCommas(totalPerRow)}`,
+          "", // Pengeluaran
+          "", // Total pengeluaran
+        ]);
+      });
     });
 
-    const totalRow = [
-      {
-        Nama: "Total",
-        Metode_Pembayaran: `Rp. ${numberWithCommas(totalCash + totalDebit)}`,
-        Grand_Total: `Cash: Rp. ${numberWithCommas(
-          totalCash
-        )}, Debit / QRIS: Rp. ${numberWithCommas(totalDebit)}`,
-      },
+    // Tambahkan baris kosong
+    rows.push(["", "", "", "", "", "", "", ""]);
+
+    // Total
+    const totalSemua = totalSemuaCash + totalSemuaQRIS;
+    rows.push([
+      "",
+      "",
+      "",
+      "",
+      "Total",
+      `Rp. ${numberWithCommas(totalSemua)}`,
+      "",
+      "",
+    ]);
+
+    // Header multi-baris
+    const header = [
+      [
+        "Tanggal",
+        "Nama_Pelanggan",
+        "Treatment",
+        "Pembayaran",
+        "",
+        "Total",
+        "Pengeluaran",
+        "Total",
+      ],
+      ["", "", "", "Cash", "QRIS", "", "", ""],
     ];
 
-    const ws = XLSX.utils.json_to_sheet(wsData);
-    const wsTotal = XLSX.utils.json_to_sheet(totalRow, {
-      header: ["Nama", "Grand_Total", "Metode_Pembayaran"],
-      skipHeader: true,
-    });
+    // Gabungkan header dan data
+    const finalData = [...header, ...rows];
 
-    XLSX.utils.sheet_add_aoa(ws, [[]], { origin: -1 });
-    XLSX.utils.sheet_add_json(ws, totalRow, {
-      header: ["Nama", "Grand_Total", "Metode_Pembayaran"],
-      skipHeader: true,
-      origin: -1,
-    });
+    // Generate worksheet dari array of arrays
+    const ws = XLSX.utils.aoa_to_sheet(finalData);
 
+    // Merge cell agar rapih
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // Tanggal
+      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // Nama_Pelanggan
+      { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, // Treatment
+      { s: { r: 0, c: 3 }, e: { r: 0, c: 4 } }, // Pembayaran
+      { s: { r: 0, c: 5 }, e: { r: 1, c: 5 } }, // Total
+      { s: { r: 0, c: 6 }, e: { r: 1, c: 6 } }, // Pengeluaran
+      { s: { r: 0, c: 7 }, e: { r: 1, c: 7 } }, // Total Pengeluaran
+    ];
+
+    // Buat dan simpan file
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
-    XLSX.writeFile(wb, "Penjualan.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan Penjualan");
+    XLSX.writeFile(wb, "Laporan_Penjualan.xlsx");
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -283,7 +339,7 @@ function ListPenjualan() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
- const generatePrintContent = (penjualandetail) => {
+  const generatePrintContent = (penjualandetail) => {
     const now = new Date(); // Ambil waktu sekarang
     return `
       <html>
