@@ -18,7 +18,14 @@ import { FaTrashCan, FaPlus, FaMinus } from "react-icons/fa6";
 import Select from "react-select";
 import "./table.css";
 
-function Transaksi({ namaPelanggan, nohp, alamat, tanggalTransaction }) {
+function Transaksi({
+  namaPelanggan,
+  nohp,
+  alamat,
+  tanggalTransaction,
+  selectedBooking,
+  handleReset,
+}) {
   const navigate = useNavigate();
   const [grandTotal, setGrandTotal] = useState(0);
   const [metod, setMetod] = useState([]);
@@ -64,6 +71,49 @@ function Transaksi({ namaPelanggan, nohp, alamat, tanggalTransaction }) {
     };
     fetchPrawatan();
   }, []);
+
+  useEffect(() => {
+    const fetchBookingDetails = async () => {
+      if (selectedBooking) {
+        try {
+          const res = await axios.get(
+            `http://localhost:5000/booking/${selectedBooking.value}`
+          );
+          const booking = res.data;
+          const details = booking.detail_bookings.map((item) => ({
+            id: item.id_detailbooking,
+            perawatanPelanggan: item.namaperawatan,
+            hargaP: item.perawatan.harga,
+            quantityP: 1,
+            totalHarga: item.perawatan.harga,
+            karyawanNote: "",
+          }));
+
+          setTransaktionP(details);
+          setGrandTotal(
+            details.reduce((acc, item) => acc + item.totalHarga, 0)
+          );
+        } catch (error) {
+          console.error("Error fetching booking details:", error);
+        }
+      } else {
+        // If no booking is selected, reset transaction details
+        setTransaktionP([
+          {
+            id: Date.now(),
+            perawatanPelanggan: "",
+            hargaP: 0,
+            quantityP: 1,
+            totalHarga: 0,
+            karyawanNote: null,
+          },
+        ]);
+        setGrandTotal(0);
+      }
+    };
+
+    fetchBookingDetails();
+  }, [selectedBooking]); // Depend on selectedBooking to trigger fetch when it changes
 
   // Handle quantity increase
   const increaseQuantity = (id) => {
@@ -207,6 +257,16 @@ function Transaksi({ namaPelanggan, nohp, alamat, tanggalTransaction }) {
           })
         )
       );
+
+      // Update status booking menjadi 1 (misalnya menandakan transaksi selesai)
+      if (selectedBooking && selectedBooking.value) {
+        await axios.patch(
+          `http://localhost:5000/booking/${selectedBooking.value}`,
+          {
+            status: 1, // Menandakan booking sudah selesai
+          }
+        );
+      }
 
       Swal.fire({
         title: "Penjualan Berhasil Ditambahkan",
