@@ -8,13 +8,15 @@ import {
   Badge,
 } from "react-bootstrap";
 import { IoHomeOutline } from "react-icons/io5";
-import { BsCart4 } from "react-icons/bs";
+import { BsBagHeart, BsCart4 } from "react-icons/bs";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaList } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { BsFillPersonLinesFill } from "react-icons/bs";
-import logosputih from "../image/logosputih.png";
+import logobeaty from "../image/logobeaty.png"; // Mengimpor gambar logo
 import { FaHandHoldingHeart } from "react-icons/fa6";
+import { FaAddressBook } from "react-icons/fa";
+import { MdInventory } from "react-icons/md";
 
 function Navigation() {
   const navigate = useNavigate();
@@ -54,6 +56,12 @@ function Navigation() {
               </Nav.Link>
               <Nav.Link onClick={() => navigate("/daftarpenjualan")}>
                 <FaList className="mb-1" /> Penjualan
+              </Nav.Link>
+              <Nav.Link onClick={() => navigate("/booking")}>
+                <FaAddressBook className="mb-1" /> Booking
+              </Nav.Link>
+              <Nav.Link onClick={() => navigate("/gudang")}>
+                <MdInventory className="mb-1" /> Inventory
               </Nav.Link>
             </Nav>
           </Navbar.Collapse>
