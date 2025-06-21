@@ -8,6 +8,7 @@ import DaftarPenjualan from "./pages/DaftarPenjualan";
 import PerawatanPage from "./pages/PerawatanPage";
 import DaftarBooking from "./pages/DaftarBooking";
 import Inventory from "./pages/Inventory";
+import Members from "./pages/Members";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/perawatan" element={<PerawatanPage />} />
           <Route path="/booking" element={<DaftarBooking />} />
           <Route path="/gudang" element={<Inventory />} />
+          <Route path="/member" element={<Members />} />
         </Routes>
       </Router>
     </>
